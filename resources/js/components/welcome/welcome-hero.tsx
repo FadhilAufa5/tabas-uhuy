@@ -46,7 +46,7 @@ export function WelcomeHero({ user }: WelcomeHeroProps) {
 
                         {/* Subtitle */}
                         <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                            Tingkatkan kecepatan, akurasi, dan transparansi penyelesaian kendala layanan peserta Taspen dengan basis data solusi SOP terintegrasi dan pencatatan Berita Acara digital.
+                            Ayo awali hari ini dengan senyuman dan jangan lupa selalu berikan layanan prima.
                         </p>
 
                         {/* Action Buttons */}

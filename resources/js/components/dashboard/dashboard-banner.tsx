@@ -11,15 +11,15 @@ export function DashboardBanner({ userName = 'Petugas' }: DashboardBannerProps) 
     return (
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-700 via-indigo-600 to-purple-700 p-6 md:p-8 text-white shadow-xl">
             <div className="relative z-10 max-w-3xl space-y-2">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 text-xs font-semibold backdrop-blur-md">
+                {/* <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 text-xs font-semibold backdrop-blur-md">
                     <Sparkles className="size-3.5 text-amber-300" />
                     Portal Layanan & Manajemen Kasus Taspen
-                </div>
+                </div> */}
                 <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
                     Selamat Datang, {userName}!
                 </h1>
                 <p className="text-sm md:text-base text-blue-100/90 leading-relaxed">
-                    Monitor statistik rekapitulasi penanganan kasus layanan pensiun, telusuri referensi SOP hukum, dan kelola dokumen Berita Acara secara terintegrasi.
+                    Ayo awali hari ini dengan senyuman dan jangan lupa selalu berikan layanan prima!
                 </p>
                 <div className="flex flex-wrap gap-3 pt-2">
                     <Link href="/berita-acara">
