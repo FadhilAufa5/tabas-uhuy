@@ -7,9 +7,7 @@ use App\Http\Controllers\RolePermissionController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return auth()->check() ? redirect()->route('dashboard') : redirect()->route('login');
-})->name('home');
+Route::inertia('/', 'welcome')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -20,6 +18,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::match(['put', 'post'], 'berita-acara/{beritaAcara}', [BeritaAcaraController::class, 'update'])->name('berita-acara.update');
     Route::delete('berita-acara/{beritaAcara}', [BeritaAcaraController::class, 'destroy'])->name('berita-acara.destroy');
     Route::get('berita-acara/{beritaAcara}/download', [BeritaAcaraController::class, 'download'])->name('berita-acara.download');
+    Route::post('berita-acara/{beritaAcara}/upload-dokumentasi', [BeritaAcaraController::class, 'uploadDokumentasi'])->name('berita-acara.upload-dokumentasi');
+    Route::get('berita-acara/{beritaAcara}/download-dokumentasi', [BeritaAcaraController::class, 'downloadDokumentasi'])->name('berita-acara.download-dokumentasi');
+    Route::delete('berita-acara/{beritaAcara}/delete-dokumentasi', [BeritaAcaraController::class, 'deleteDokumentasi'])->name('berita-acara.delete-dokumentasi');
 
     // 2. Referensi Kasus
     Route::get('referensi-kasus', [ReferensiKasusController::class, 'index'])->name('referensi-kasus.index');

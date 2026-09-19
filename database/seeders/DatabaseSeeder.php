@@ -44,7 +44,10 @@ class DatabaseSeeder extends Seeder
         );
         $staff->roles()->sync([$userRole->id]);
 
-        // Note: Seeder Referensi Kasus dan Berita Acara dinonaktifkan sementara sesuai permintaan.
-        // Bisa dijalankan nanti dengan: php artisan db:seed --class=ReferensiKasusSeeder
+        // 4. Seed Referensi Kasus dari Rekap Keluhan Permasalahan TASPEN
+        $this->call(RekapKeluhanSeeder::class);
+
+        // 5. Seed Materi Regulasi UU No. 11 Tahun 1969 (Pensiun Pegawai & Janda/Duda)
+        $this->call(UUPensiun1969Seeder::class);
     }
 }

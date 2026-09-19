@@ -21,6 +21,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import type { BeritaAcara, BeritaAcaraFormData } from './types';
+import { formatTanggalInput } from './utils';
 
 interface BaCreateModalProps {
     open: boolean;
@@ -80,7 +81,7 @@ export function BaCreateModal({
                             <Input
                                 id="tanggal_kejadian"
                                 type="date"
-                                value={formData.tanggal_kejadian}
+                                value={formatTanggalInput(formData.tanggal_kejadian)}
                                 onChange={(e) =>
                                     setFormData({ ...formData, tanggal_kejadian: e.target.value })
                                 }
@@ -88,20 +89,38 @@ export function BaCreateModal({
                         </div>
                     </div>
 
-                    <div className="space-y-1.5">
-                        <Label htmlFor="nama">
-                            Nama Pihak / Pelapor / NIP <span className="text-rose-500">*</span>
-                        </Label>
-                        <Input
-                            id="nama"
-                            placeholder="Contoh: Drs. Bambang Sutrisno (NIP: 197001011995031001)"
-                            value={formData.nama}
-                            onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
-                            required
-                        />
-                        {formErrors.nama && (
-                            <p className="text-xs text-rose-500">{formErrors.nama}</p>
-                        )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="nama">
+                                Nama Pihak / Pelapor / NIP <span className="text-rose-500">*</span>
+                            </Label>
+                            <Input
+                                id="nama"
+                                placeholder="Contoh: Drs. Bambang Sutrisno (NIP: 197001011995031001)"
+                                value={formData.nama}
+                                onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
+                                required
+                            />
+                            {formErrors.nama && (
+                                <p className="text-xs text-rose-500">{formErrors.nama}</p>
+                            )}
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label htmlFor="no_hp">
+                                No. HP / WhatsApp
+                            </Label>
+                            <Input
+                                id="no_hp"
+                                type="tel"
+                                placeholder="Contoh: 081234567890"
+                                value={formData.no_hp || ''}
+                                onChange={(e) => setFormData({ ...formData, no_hp: e.target.value })}
+                            />
+                            {formErrors.no_hp && (
+                                <p className="text-xs text-rose-500">{formErrors.no_hp}</p>
+                            )}
+                        </div>
                     </div>
 
                     <div className="space-y-1.5">

@@ -22,6 +22,7 @@ export type BeritaAcara = {
     user_id?: number | null;
     nomor_berita_acara: string;
     nama: string;
+    no_hp?: string | null;
     permasalahan: string;
     solusi: string;
     file_notas?: string | null;
@@ -30,6 +31,12 @@ export type BeritaAcara = {
     file_url?: string | null;
     status: 'Selesai' | 'Dalam Proses' | 'Draft';
     tanggal_kejadian?: string | null;
+    foto_dokumentasi?: string | null;
+    foto_dokumentasi_name?: string | null;
+    foto_dokumentasi_size?: number | null;
+    foto_dokumentasi_url?: string | null;
+    waktu_dokumentasi?: string | null;
+    catatan_dokumentasi?: string | null;
     user?: {
         id: number;
         name: string;

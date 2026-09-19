@@ -1,17 +1,20 @@
 import { router } from '@inertiajs/react';
 import {
     Calendar,
+    Camera,
     CheckCircle2,
     Clock,
     Eye,
     FileCheck2,
-    FileDown,
+    FileSignature,
     FileText,
     Pencil,
+    Phone,
     Plus,
     Printer,
     Search,
     Trash2,
+    Upload,
 } from 'lucide-react';
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -34,19 +37,26 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import type { BeritaAcara, PaginatedData } from '@/types';
-import { openPrintWindow } from './utils';
+import { BaStats } from './ba-stats';
+import type { BeritaAcaraStats } from './types';
+import { formatTanggalIndo, openPrintWindow } from './utils';
 
 interface BaTableProps {
     items: PaginatedData<BeritaAcara>;
+    stats?: BeritaAcaraStats;
     searchQuery: string;
     statusFilter: string;
+    dokumentasiFilter: string;
     onSearchChange: (val: string) => void;
     onSearch: (e?: React.FormEvent) => void;
     onStatusFilterChange: (val: string) => void;
+    onDokumentasiFilterChange: (val: string) => void;
     onOpenDetail: (item: BeritaAcara) => void;
     onOpenEdit: (item: BeritaAcara) => void;
     onOpenDelete: (item: BeritaAcara) => void;
     onOpenCreate: () => void;
+    onOpenUploadDokumentasi: (item: BeritaAcara, isAfterPrint?: boolean) => void;
+    onOpenFotoModal: (item: BeritaAcara) => void;
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -74,16 +84,29 @@ function StatusBadge({ status }: { status: string }) {
 
 export function BaTable({
     items,
+    stats,
     searchQuery,
     statusFilter,
+    dokumentasiFilter,
     onSearchChange,
     onSearch,
     onStatusFilterChange,
+    onDokumentasiFilterChange,
     onOpenDetail,
     onOpenEdit,
     onOpenDelete,
     onOpenCreate,
+    onOpenUploadDokumentasi,
+    onOpenFotoModal,
 }: BaTableProps) {
+    const handlePrintItem = (item: BeritaAcara) => {
+        openPrintWindow(item);
+        // Setelah jendela print terbuka, munculkan modal panduan upload tanda tangan
+        setTimeout(() => {
+            onOpenUploadDokumentasi(item, true);
+        }, 600);
+    };
+
     return (
         <>
             {/* Header Title & Actions */}
@@ -96,8 +119,7 @@ export function BaTable({
                         Berita Acara Pelayanan
                     </h1>
                     <p className="text-sm text-muted-foreground mt-1">
-                        Pencatatan resmi kasus penanganan, upload dokumen Notas, dan solusi tindak
-                        lanjut.
+                        Pencatatan resmi kasus penanganan, cetak berkas fisik, dokumentasi tanda tangan, dan solusi tindak lanjut.
                     </p>
                 </div>
                 <div className="flex items-center gap-2.5">
@@ -110,10 +132,13 @@ export function BaTable({
                 </div>
             </div>
 
+            {/* Statistik Cards Ditaruh di Atas Tabel */}
+            {stats && <BaStats stats={stats} />}
+
             {/* Filters & Table Card */}
             <Card className="border-border/70 shadow-xs">
                 <CardHeader className="p-4 sm:p-6 pb-3">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                         <form
                             onSubmit={onSearch}
                             className="flex flex-1 items-center gap-2 max-w-md"
@@ -132,21 +157,41 @@ export function BaTable({
                             </Button>
                         </form>
 
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium text-muted-foreground">
-                                Filter Status:
-                            </span>
-                            <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-                                <SelectTrigger className="w-[140px] h-9">
-                                    <SelectValue placeholder="Status" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Semua Status</SelectItem>
-                                    <SelectItem value="Selesai">Selesai</SelectItem>
-                                    <SelectItem value="Dalam Proses">Dalam Proses</SelectItem>
-                                    <SelectItem value="Draft">Draft</SelectItem>
-                                </SelectContent>
-                            </Select>
+                        <div className="flex flex-wrap items-center gap-3">
+                            {/* Filter Status */}
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                    Status:
+                                </span>
+                                <Select value={statusFilter} onValueChange={onStatusFilterChange}>
+                                    <SelectTrigger className="w-[135px] h-9">
+                                        <SelectValue placeholder="Status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Semua Status</SelectItem>
+                                        <SelectItem value="Selesai">Selesai</SelectItem>
+                                        <SelectItem value="Dalam Proses">Dalam Proses</SelectItem>
+                                        <SelectItem value="Draft">Draft</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            {/* Filter Dokumentasi TTD */}
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                    Dokumentasi TTD:
+                                </span>
+                                <Select value={dokumentasiFilter} onValueChange={onDokumentasiFilterChange}>
+                                    <SelectTrigger className="w-[155px] h-9">
+                                        <SelectValue placeholder="Dokumentasi TTD" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Semua Dokumen</SelectItem>
+                                        <SelectItem value="sudah_ttd">✓ Sudah Ditandatangani</SelectItem>
+                                        <SelectItem value="belum_ttd">⏳ Belum Upload TTD</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
                     </div>
                 </CardHeader>
@@ -157,19 +202,20 @@ export function BaTable({
                             <TableHeader className="bg-muted/40">
                                 <TableRow>
                                     <TableHead className="w-[160px] font-semibold">NOTAS</TableHead>
-                                    <TableHead className="w-[200px] font-semibold">Nama / Pihak</TableHead>
-                                    <TableHead className="min-w-[220px] font-semibold">Permasalahan</TableHead>
-                                    <TableHead className="min-w-[220px] font-semibold">Solusi</TableHead>
-                                    <TableHead className="w-[140px] font-semibold">Dokumen Notas</TableHead>
-                                    <TableHead className="w-[110px] font-semibold">Status</TableHead>
-                                    <TableHead className="w-[150px] text-right font-semibold">Aksi</TableHead>
+                                    <TableHead className="w-[180px] font-semibold">Nama / Pihak</TableHead>
+                                    <TableHead className="min-w-[200px] font-semibold">Permasalahan</TableHead>
+                                    <TableHead className="min-w-[200px] font-semibold">Solusi</TableHead>
+                                    <TableHead className="w-[130px] font-semibold">Lampiran Notas</TableHead>
+                                    <TableHead className="w-[165px] font-semibold">Dokumentasi TTD</TableHead>
+                                    <TableHead className="w-[105px] font-semibold">Status</TableHead>
+                                    <TableHead className="w-[160px] text-right font-semibold">Aksi</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {items.data.length === 0 ? (
                                     <TableRow>
                                         <TableCell
-                                            colSpan={7}
+                                            colSpan={8}
                                             className="h-40 text-center text-muted-foreground"
                                         >
                                             <div className="flex flex-col items-center justify-center gap-2">
@@ -190,49 +236,73 @@ export function BaTable({
                                             key={item.id}
                                             className="hover:bg-muted/30 transition-colors"
                                         >
+                                            {/* NOTAS & Tanggal Kejadian */}
                                             <TableCell className="font-semibold text-primary font-mono text-xs">
-                                                <span className="inline-block px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 font-bold">
-                                                    {item.nomor_berita_acara}
-                                                </span>
-                                                {item.tanggal_kejadian && (
-                                                    <div className="text-[11px] font-normal text-muted-foreground flex items-center gap-1 mt-1">
-                                                        <Calendar className="size-3" />{' '}
-                                                        {item.tanggal_kejadian}
-                                                    </div>
-                                                )}
+                                                <div className="flex flex-col gap-1.5 items-start">
+                                                    <span className="inline-block px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 font-bold text-xs">
+                                                        {item.nomor_berita_acara}
+                                                    </span>
+                                                    {item.tanggal_kejadian ? (
+                                                        <div
+                                                            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-600 dark:text-slate-300 bg-slate-100/90 dark:bg-slate-800/70 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700/60"
+                                                            title={`Tanggal Kejadian: ${formatTanggalIndo(item.tanggal_kejadian, { monthFormat: 'long' })}`}
+                                                        >
+                                                            <Calendar className="size-3 text-blue-600 dark:text-blue-400 shrink-0" />
+                                                            <span className="whitespace-nowrap font-sans">
+                                                                {formatTanggalIndo(item.tanggal_kejadian, { monthFormat: 'short' })}
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-[11px] font-sans text-muted-foreground italic">
+                                                            Tanggal: -
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </TableCell>
+
+                                            {/* Nama & Petugas */}
                                             <TableCell>
                                                 <div className="font-medium text-sm text-foreground">
                                                     {item.nama}
                                                 </div>
+                                                {item.no_hp && (
+                                                    <div className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                                                        <Phone className="size-3" /> {item.no_hp}
+                                                    </div>
+                                                )}
                                                 {item.user && (
                                                     <div className="text-[11px] text-muted-foreground">
                                                         Petugas: {item.user.name}
                                                     </div>
                                                 )}
                                             </TableCell>
-                                            <TableCell className="max-w-[240px]">
+
+                                            {/* Permasalahan */}
+                                            <TableCell className="max-w-[220px]">
                                                 <p className="line-clamp-2 text-xs text-muted-foreground leading-relaxed">
                                                     {item.permasalahan}
                                                 </p>
                                             </TableCell>
-                                            <TableCell className="max-w-[240px]">
+
+                                            {/* Solusi */}
+                                            <TableCell className="max-w-[220px]">
                                                 <p className="line-clamp-2 text-xs text-muted-foreground leading-relaxed">
                                                     {item.solusi}
                                                 </p>
                                             </TableCell>
+
+                                            {/* Lampiran Notas */}
                                             <TableCell>
                                                 {item.file_notas ? (
                                                     <a
                                                         href={`/berita-acara/${item.id}/download`}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800 transition-colors"
+                                                        className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800 transition-colors"
                                                         title={item.file_notas_name || 'Download Notas'}
                                                     >
-                                                        <FileDown className="size-3.5" />
-                                                        <span className="max-w-[80px] truncate">
-                                                            {item.file_notas_name || 'Unduh Notas'}
+                                                        <span className="max-w-[85px] truncate">
+                                                            {item.file_notas_name || 'Unduh'}
                                                         </span>
                                                     </a>
                                                 ) : item.file_notas_name ? (
@@ -246,20 +316,98 @@ export function BaTable({
                                                     </span>
                                                 )}
                                             </TableCell>
+
+                                            {/* Dokumentasi Tanda Tangan Fisik */}
+                                            <TableCell>
+                                                {item.foto_dokumentasi_url ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => onOpenFotoModal(item)}
+                                                            className="relative size-8 shrink-0 overflow-hidden rounded-md border border-emerald-300 ring-1 ring-emerald-500/30 hover:opacity-85 transition-opacity"
+                                                            title="Klik untuk melihat bukti foto tanda tangan"
+                                                        >
+                                                            <img
+                                                                src={item.foto_dokumentasi_url}
+                                                                alt="Thumbnail TTD"
+                                                                className="size-full object-cover"
+                                                            />
+                                                        </button>
+                                                        <div className="flex flex-col">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => onOpenFotoModal(item)}
+                                                                className="text-left font-semibold text-xs text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                                                            >
+                                                                <CheckCircle2 className="size-3 shrink-0" />
+                                                                <span>Sudah TTD</span>
+                                                            </button>
+                                                            <span className="text-[10px] text-muted-foreground">
+                                                                {item.waktu_dokumentasi
+                                                                    ? formatTanggalIndo(item.waktu_dokumentasi, { monthFormat: 'short' })
+                                                                    : 'Terdokumentasi'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => onOpenUploadDokumentasi(item)}
+                                                        className="h-7 px-2 text-[11px] border-amber-300 bg-amber-50/60 text-amber-800 hover:bg-amber-100 hover:text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300 gap-1"
+                                                    >
+                                                        <Camera className="size-3" />
+                                                        <span>Upload TTD</span>
+                                                    </Button>
+                                                )}
+                                            </TableCell>
+
+                                            {/* Status Pelayanan */}
                                             <TableCell>
                                                 <StatusBadge status={item.status} />
                                             </TableCell>
+
+                                            {/* Kolom Aksi */}
                                             <TableCell className="text-right">
                                                 <div className="flex items-center justify-end gap-1">
+                                                    {/* Lihat Detail */}
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
                                                         className="size-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/40"
                                                         onClick={() => onOpenDetail(item)}
-                                                        title="Lihat Detail"
+                                                        title="Lihat Detail Berita Acara"
                                                     >
                                                         <Eye className="size-4" />
                                                     </Button>
+
+                                                    {/* Upload / Lihat Foto TTD */}
+                                                    {/* <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className={`size-8 ${
+                                                            item.foto_dokumentasi
+                                                                ? 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
+                                                                : 'text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/40'
+                                                        }`}
+                                                        onClick={() => {
+                                                            if (item.foto_dokumentasi) {
+                                                                onOpenFotoModal(item);
+                                                            } else {
+                                                                onOpenUploadDokumentasi(item);
+                                                            }
+                                                        }}
+                                                        title={
+                                                            item.foto_dokumentasi
+                                                                ? 'Lihat/Ganti Bukti Tanda Tangan'
+                                                                : 'Unggah Foto Bukti Tanda Tangan'
+                                                        }
+                                                    >
+                                                        <Camera className="size-4" />
+                                                    </Button> */}
+
+                                                    {/* Edit */}
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
@@ -269,15 +417,19 @@ export function BaTable({
                                                     >
                                                         <Pencil className="size-4" />
                                                     </Button>
-                                                    <Button
+
+                                                    {/* Cetak Berita Acara */}
+                                                    {/* <Button
                                                         variant="ghost"
                                                         size="icon"
-                                                        className="size-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
-                                                        onClick={() => openPrintWindow(item)}
-                                                        title="Cetak Berita Acara"
+                                                        className="size-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                                                        onClick={() => handlePrintItem(item)}
+                                                        title="Cetak Berita Acara (dan lanjut unggah bukti TTD)"
                                                     >
                                                         <Printer className="size-4" />
-                                                    </Button>
+                                                    </Button> */}
+
+                                                    {/* Hapus */} 
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"

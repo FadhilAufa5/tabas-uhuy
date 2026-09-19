@@ -7,6 +7,7 @@ import {
     DashboardCaseModal,
     DashboardCaseSearch,
     DashboardCategoryChart,
+    DashboardChatbot,
     DashboardMonthlyChart,
     DashboardStats,
     MonthlyStat,
@@ -149,6 +150,12 @@ export default function Dashboard({
                 selectedCase={selectedCaseDetail}
                 onClose={() => setSelectedCaseDetail(null)}
                 onCopySolution={handleCopySolution}
+            />
+
+            {/* 6. Floating AI Chatbot with Shadcn Bubble Chat */}
+            <DashboardChatbot
+                allCases={allCases}
+                userName={user?.name}
             />
         </>
     );

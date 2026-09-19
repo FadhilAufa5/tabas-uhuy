@@ -6,3 +6,5 @@ export { BaCreateModal } from './ba-create-modal';
 export { BaEditModal } from './ba-edit-modal';
 export { BaDetailModal } from './ba-detail-modal';
 export { BaDeleteModal } from './ba-delete-modal';
+export { BaUploadDokumentasiModal } from './ba-upload-dokumentasi-modal';
+export { BaFotoModal } from './ba-foto-modal';

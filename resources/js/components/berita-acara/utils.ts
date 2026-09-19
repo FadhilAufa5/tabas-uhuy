@@ -7,6 +7,72 @@ export function formatFileSize(bytes?: number | null): string {
     return (bytes / 1048576).toFixed(2) + ' MB';
 }
 
+/**
+ * Format tanggal ke format Bahasa Indonesia yang rapi.
+ * Contoh output: "10 September 2026" atau "10 Sep 2026"
+ */
+export function formatTanggalIndo(
+    dateStr?: string | null,
+    options: { monthFormat?: 'short' | 'long' } = { monthFormat: 'long' }
+): string {
+    if (!dateStr) return '-';
+
+    try {
+        const cleanDate = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr.split(' ')[0];
+        const parts = cleanDate.split('-');
+
+        if (parts.length === 3) {
+            const year = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const day = parseInt(parts[2], 10);
+            const d = new Date(year, month, day);
+
+            if (!isNaN(d.getTime())) {
+                return d.toLocaleDateString('id-ID', {
+                    day: 'numeric',
+                    month: options.monthFormat ?? 'long',
+                    year: 'numeric',
+                });
+            }
+        }
+
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+
+        return d.toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: options.monthFormat ?? 'long',
+            year: 'numeric',
+        });
+    } catch {
+        return dateStr;
+    }
+}
+
+/**
+ * Normalisasi format tanggal untuk HTML input type="date" (YYYY-MM-DD)
+ */
+export function formatTanggalInput(dateStr?: string | null): string {
+    if (!dateStr) return '';
+    if (dateStr.includes('T')) {
+        return dateStr.split('T')[0];
+    }
+    if (dateStr.includes(' ')) {
+        return dateStr.split(' ')[0];
+    }
+    return dateStr;
+}
+
+function escapeHtml(text?: string | null): string {
+    if (!text) return '';
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 export function openPrintWindow(item: BeritaAcara): void {
     const now = new Date();
     const tanggalCetak = now.toLocaleDateString('id-ID', {
@@ -15,186 +81,279 @@ export function openPrintWindow(item: BeritaAcara): void {
         year: 'numeric',
     });
 
-    const htmlContent = `
-<!DOCTYPE html>
+    const itemAny = item as Record<string, any>;
+    const noHp = itemAny.no_hp || itemAny.telepon || itemAny.phone || itemAny.nomor_telepon || '';
+
+    const dotsIdentitas = '.........................................................................................................';
+    const dotsName = '.....................................';
+    const dotsSig = '...................................................';
+
+    const tanggalDisplay = item.tanggal_kejadian
+        ? `Bogor, ${formatTanggalIndo(item.tanggal_kejadian, { monthFormat: 'long' })}`
+        : item.nama
+          ? `Bogor, ${tanggalCetak}`
+          : 'Bogor,.........................................20';
+
+    const logoUrl = `${window.location.origin}/logo-taspen%20no%20bg.png`;
+
+    const htmlContent = `<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Berita Acara – NOTAS ${item.nomor_berita_acara}</title>
+  <title>Berita Acara – ${escapeHtml(item.nomor_berita_acara) || 'Complaint Handling'}</title>
+  <base href="${window.location.origin}/">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
     body {
       font-family: 'Times New Roman', Times, serif;
-      font-size: 12pt;
+      font-size: 11pt;
       color: #000;
       background: #fff;
+      line-height: 1.35;
     }
     .page {
       width: 210mm;
       min-height: 297mm;
       margin: 0 auto;
-      padding: 25mm 25mm 20mm 30mm;
+      padding: 16mm 22mm 16mm 22mm;
       position: relative;
+      background: #fff;
     }
     .header {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding-bottom: 12px;
-      border-bottom: 3px double #000;
-      margin-bottom: 18px;
+      text-align: center;
+      margin-bottom: 20px;
     }
-    .header-logo {
-      width: 70px;
-      height: 70px;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .header .logo {
+      width: 140px;
+      height: auto;
+      display: block;
+      margin: 0 auto 12px auto;
     }
-    .header-text { flex: 1; text-align: center; }
-    .header-text .kementerian { font-size: 11pt; letter-spacing: 0.5px; }
-    .header-text .instansi { font-size: 14pt; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; }
-    .header-text .unit { font-size: 10.5pt; }
-    .header-text .alamat { font-size: 9pt; color: #333; margin-top: 2px; }
-    .doc-title { text-align: center; margin: 18px 0 8px; }
-    .doc-title h1 { font-size: 14pt; font-weight: bold; text-transform: uppercase; letter-spacing: 1.5px; }
-    .doc-title .notas-num { font-size: 11pt; margin-top: 4px; }
-    .divider { border: none; border-top: 1px solid #000; margin: 10px 0; }
-    .info-table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 11pt; }
-    .info-table td { padding: 5px 8px; vertical-align: top; }
-    .info-table td.label { width: 38%; }
-    .info-table td.colon { width: 3%; text-align: center; }
-    .info-table td.value { width: 59%; }
-    .section { margin: 16px 0; }
-    .section-title { font-size: 11pt; font-weight: bold; text-transform: uppercase; margin-bottom: 6px; }
-    .section-content {
-      border: 1px solid #000;
-      padding: 10px 12px;
-      min-height: 70px;
-      font-size: 11pt;
-      line-height: 1.6;
-      white-space: pre-line;
-    }
-    .signature-area { display: flex; justify-content: space-between; margin-top: 40px; }
-    .signature-box { width: 42%; text-align: center; font-size: 11pt; }
-    .signature-box .sig-label { margin-bottom: 4px; }
-    .signature-box .sig-place-date { margin-bottom: 60px; }
-    .signature-box .sig-name {
+    .header .doc-title {
+      font-size: 13pt;
       font-weight: bold;
-      border-top: 1px solid #000;
-      padding-top: 4px;
-      display: inline-block;
-      min-width: 150px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      line-height: 1.3;
     }
-    .footer-note {
-      position: absolute;
-      bottom: 15mm;
-      left: 30mm;
-      right: 25mm;
-      font-size: 8pt;
-      color: #555;
-      border-top: 1px solid #ccc;
-      padding-top: 6px;
+    .header .doc-subtitle {
+      font-size: 12pt;
+      font-style: italic;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-top: 2px;
+      line-height: 1.3;
+    }
+    .section-title {
+      font-size: 11pt;
+      font-weight: normal;
+      margin-bottom: 5px;
+    }
+    .identitas-table {
+      width: calc(100% - 24px);
+      margin-left: 24px;
+      border-collapse: collapse;
+      margin-bottom: 16px;
+    }
+    .identitas-table td {
+      padding: 2px 0;
+      font-size: 11pt;
+      vertical-align: top;
+    }
+    .identitas-table .col-label {
+      width: 80px;
+      white-space: nowrap;
+    }
+    .identitas-table .col-colon {
+      width: 20px;
       text-align: center;
     }
+    .identitas-table .col-value {
+      word-break: break-word;
+    }
+    .section-block {
+      margin-bottom: 14px;
+    }
+    .rounded-box {
+      border: 2px solid #000;
+      border-radius: 16px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .box-large {
+      min-height: 140px;
+      padding: 10px 14px;
+      font-size: 11pt;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .statement-section {
+      text-align: center;
+      margin-top: 14px;
+      margin-bottom: 14px;
+    }
+    .statement-text {
+      font-size: 11pt;
+      margin-bottom: 6px;
+    }
+    .statement-box {
+      border: 2px solid #000;
+      border-radius: 8px;
+      height: 34px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .closing-paragraph {
+      font-size: 11pt;
+      line-height: 1.45;
+      text-align: justify;
+      margin-bottom: 24px;
+    }
+    .signatures {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      font-size: 11pt;
+    }
+    .sig-col {
+      width: 45%;
+      text-align: center;
+    }
+    .sig-date-spacer {
+      height: 18px;
+    }
+    .sig-date {
+      height: 18px;
+      line-height: 18px;
+      margin-bottom: 2px;
+      white-space: nowrap;
+    }
+    .sig-role {
+      margin-bottom: 55px;
+    }
+    .sig-name {
+      white-space: nowrap;
+    }
     @media print {
-      body { margin: 0; }
-      .page { padding: 20mm 20mm 20mm 25mm; }
-      .footer-note { position: fixed; bottom: 10mm; }
+      @page {
+        size: A4 portrait;
+        margin: 12mm 18mm 12mm 18mm;
+      }
+      html, body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        background: #fff;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .page {
+        width: 100%;
+        min-height: auto;
+        margin: 0;
+        padding: 0;
+        background: #fff;
+        page-break-inside: avoid;
+        page-break-after: avoid;
+      }
     }
   </style>
 </head>
 <body>
 <div class="page">
   <div class="header">
-    <div class="header-logo">
-      <svg width="70" height="70" viewBox="0 0 70 70" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="70" height="70" rx="8" fill="#1e3a8a"/>
-        <text x="50%" y="38" dominant-baseline="middle" text-anchor="middle" fill="white" font-family="Arial" font-size="13" font-weight="bold">TABAS</text>
-        <text x="50%" y="53" dominant-baseline="middle" text-anchor="middle" fill="#93c5fd" font-family="Arial" font-size="7">PT TASPEN</text>
-      </svg>
+    <img src="${logoUrl}" alt="Taspen" class="logo" />
+    <div class="doc-title">BERITA ACARA</div>
+    <div class="doc-subtitle">COMPLAINT HANDLING</div>
+  </div>
+
+  <div class="section-block">
+    <div class="section-title">A.&nbsp; Identitas Peserta</div>
+    <table class="identitas-table">
+      <tbody>
+        <tr>
+          <td class="col-label">Nama</td>
+          <td class="col-colon">:</td>
+          <td class="col-value">${escapeHtml(item.nama) || dotsIdentitas}</td>
+        </tr>
+        <tr>
+          <td class="col-label">Notas</td>
+          <td class="col-colon">:</td>
+          <td class="col-value">${escapeHtml(item.nomor_berita_acara) || dotsIdentitas}</td>
+        </tr>
+        <tr>
+          <td class="col-label">No. Hp</td>
+          <td class="col-colon">:</td>
+          <td class="col-value">${escapeHtml(noHp) || dotsIdentitas}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section-block">
+    <div class="section-title">B.&nbsp; Permasalahan</div>
+    <div class="rounded-box box-large">${escapeHtml(item.permasalahan)}</div>
+  </div>
+
+  <div class="section-block">
+    <div class="section-title">C.&nbsp; Solusi</div>
+    <div class="rounded-box box-large">${escapeHtml(item.solusi)}</div>
+  </div>
+
+  <div class="statement-section">
+    <div class="statement-text">Ditulis ulang kalimat “<strong>Saya telah memahami</strong>” oleh peserta</div>
+    <div class="statement-box"></div>
+  </div>
+
+  <div class="closing-paragraph">
+    Demikian berita acara ini dibuat dengan sebenarnya. Bahwa Bpk/Ibu. ${item.nama ? escapeHtml(item.nama) : dotsName}, menyatakan telah menerima dan memahami penjelasan yang disampaikan oleh petugas TASPEN, dan memahami bahwa seluruh kebijakan mengikuti ketentuan peraturan yang berlaku dan terbaru, termasuk apabila terdapat perubahan di kemudian hari.
+  </div>
+
+  <div class="signatures">
+    <div class="sig-col left">
+      <div class="sig-date-spacer"></div>
+      <div class="sig-role">Petugas,</div>
+      <div class="sig-name">(${escapeHtml(item.user?.name) || dotsSig})</div>
     </div>
-    <div class="header-text">
-      <div class="kementerian">PT TASPEN (PERSERO)</div>
-      <div class="instansi">Kantor Cabang Bogor</div>
-      <div class="unit">Divisi Layanan &amp; Administrasi Kepesertaan</div>
-      <div class="alamat">Jl. Raya Pajajaran No. 1, Bogor 16143 | Telp. (0251) 8321234 | www.taspen.co.id</div>
+    <div class="sig-col right">
+      <div class="sig-date">${tanggalDisplay}</div>
+      <div class="sig-role">Peserta,</div>
+      <div class="sig-name">(${escapeHtml(item.nama) || dotsSig})</div>
     </div>
-  </div>
-
-  <div class="doc-title">
-    <h1>Berita Acara Penanganan Layanan</h1>
-    <div class="notas-num">Nomor NOTAS: <strong>${item.nomor_berita_acara}</strong></div>
-  </div>
-  <hr class="divider" />
-
-  <table class="info-table">
-    <tr>
-      <td class="label">NOTAS (No. Taspen)</td>
-      <td class="colon">:</td>
-      <td class="value"><strong>${item.nomor_berita_acara}</strong></td>
-    </tr>
-    <tr>
-      <td class="label">Nama Peserta / Pihak</td>
-      <td class="colon">:</td>
-      <td class="value">${item.nama}</td>
-    </tr>
-    <tr>
-      <td class="label">Tanggal Kejadian</td>
-      <td class="colon">:</td>
-      <td class="value">${item.tanggal_kejadian || '-'}</td>
-    </tr>
-    <tr>
-      <td class="label">Status Penanganan</td>
-      <td class="colon">:</td>
-      <td class="value">${item.status}</td>
-    </tr>
-    <tr>
-      <td class="label">Petugas Pencatat</td>
-      <td class="colon">:</td>
-      <td class="value">${item.user?.name || '-'}</td>
-    </tr>
-  </table>
-
-  <hr class="divider" />
-
-  <div class="section">
-    <div class="section-title">I. Uraian Permasalahan</div>
-    <div class="section-content">${item.permasalahan}</div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">II. Solusi &amp; Tindak Lanjut</div>
-    <div class="section-content">${item.solusi}</div>
-  </div>
-
-  <div class="signature-area">
-    <div class="signature-box">
-      <div class="sig-label">Peserta / Pihak Terkait,</div>
-      <div class="sig-place-date">&nbsp;</div>
-      <div class="sig-name">${item.nama}</div>
-    </div>
-    <div class="signature-box">
-      <div class="sig-label">Bogor, ${tanggalCetak}</div>
-      <div class="sig-place-date">Petugas Layanan PT TASPEN,</div>
-      <div class="sig-name">${item.user?.name || 'Petugas'}</div>
-    </div>
-  </div>
-
-  <div class="footer-note">
-    Dokumen ini dicetak secara digital melalui Sistem TABAS – PT TASPEN (Persero).
-    Dicetak pada: ${new Date().toLocaleString('id-ID')}
   </div>
 </div>
-<script>window.onload = function() { window.print(); }<\/script>
+
+<script>
+  window.addEventListener('load', function() {
+    var images = Array.prototype.slice.call(document.images);
+    Promise.all(images.map(function(img) {
+      if (img.complete) return Promise.resolve();
+      return new Promise(function(resolve) {
+        img.onload = resolve;
+        img.onerror = resolve;
+      });
+    })).then(function() {
+      setTimeout(function() {
+        window.print();
+      }, 250);
+    });
+  });
+</script>
 </body>
 </html>`;
 
-    const printWindow = window.open('', '_blank', 'width=900,height=700');
+    const printWindow = window.open('', '_blank', 'width=900,height=750');
     if (printWindow) {
+        printWindow.document.open();
         printWindow.document.write(htmlContent);
         printWindow.document.close();
     }
 }
+

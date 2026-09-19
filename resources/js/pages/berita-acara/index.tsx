@@ -7,8 +7,10 @@ import {
     BaDeleteModal,
     BaDetailModal,
     BaEditModal,
-    BaStats,
+    BaFotoModal,
     BaTable,
+    BaUploadDokumentasiModal,
+    formatTanggalInput,
 } from '@/components/berita-acara';
 import type { BeritaAcaraFormData, BeritaAcaraStats } from '@/components/berita-acara';
 
@@ -17,6 +19,7 @@ interface Props {
     filters: {
         search: string;
         status: string;
+        dokumentasi?: string;
     };
     stats: BeritaAcaraStats;
 }
@@ -26,12 +29,16 @@ export default function BeritaAcaraPage({ items, filters, stats }: Props) {
 
     const [searchQuery, setSearchQuery] = useState(filters.search || '');
     const [statusFilter, setStatusFilter] = useState(filters.status || 'all');
+    const [dokumentasiFilter, setDokumentasiFilter] = useState(filters.dokumentasi || 'all');
 
     // Modals state
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [isUploadDokumentasiOpen, setIsUploadDokumentasiOpen] = useState(false);
+    const [isFotoModalOpen, setIsFotoModalOpen] = useState(false);
+    const [isAfterPrintPrompt, setIsAfterPrintPrompt] = useState(false);
 
     const [selectedItem, setSelectedItem] = useState<BeritaAcara | null>(null);
 
@@ -39,6 +46,7 @@ export default function BeritaAcaraPage({ items, filters, stats }: Props) {
     const defaultForm: BeritaAcaraFormData = {
         nomor_berita_acara: '',
         nama: '',
+        no_hp: '',
         permasalahan: '',
         solusi: '',
         status: 'Selesai',
@@ -49,15 +57,32 @@ export default function BeritaAcaraPage({ items, filters, stats }: Props) {
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Search Handler
+    // Search & Filter Handlers
     const handleSearch = (e?: React.FormEvent) => {
         if (e) e.preventDefault();
-        router.get('/berita-acara', { search: searchQuery, status: statusFilter }, { preserveState: true });
+        router.get(
+            '/berita-acara',
+            { search: searchQuery, status: statusFilter, dokumentasi: dokumentasiFilter },
+            { preserveState: true }
+        );
     };
 
     const handleStatusFilterChange = (val: string) => {
         setStatusFilter(val);
-        router.get('/berita-acara', { search: searchQuery, status: val }, { preserveState: true });
+        router.get(
+            '/berita-acara',
+            { search: searchQuery, status: val, dokumentasi: dokumentasiFilter },
+            { preserveState: true }
+        );
+    };
+
+    const handleDokumentasiFilterChange = (val: string) => {
+        setDokumentasiFilter(val);
+        router.get(
+            '/berita-acara',
+            { search: searchQuery, status: statusFilter, dokumentasi: val },
+            { preserveState: true }
+        );
     };
 
     // Open Handlers
@@ -73,10 +98,11 @@ export default function BeritaAcaraPage({ items, filters, stats }: Props) {
         setFormData({
             nomor_berita_acara: item.nomor_berita_acara,
             nama: item.nama,
+            no_hp: item.no_hp || '',
             permasalahan: item.permasalahan,
             solusi: item.solusi,
             status: item.status,
-            tanggal_kejadian: item.tanggal_kejadian || new Date().toISOString().split('T')[0],
+            tanggal_kejadian: formatTanggalInput(item.tanggal_kejadian) || new Date().toISOString().split('T')[0],
         });
         setSelectedFile(null);
         setFormErrors({});
@@ -93,6 +119,17 @@ export default function BeritaAcaraPage({ items, filters, stats }: Props) {
         setIsDeleteOpen(true);
     };
 
+    const handleOpenUploadDokumentasi = (item: BeritaAcara, isAfterPrint = false) => {
+        setSelectedItem(item);
+        setIsAfterPrintPrompt(isAfterPrint);
+        setIsUploadDokumentasiOpen(true);
+    };
+
+    const handleOpenFotoModal = (item: BeritaAcara) => {
+        setSelectedItem(item);
+        setIsFotoModalOpen(true);
+    };
+
     // Submit Create
     const handleSubmitCreate = (e: React.FormEvent) => {
         e.preventDefault();
@@ -101,6 +138,7 @@ export default function BeritaAcaraPage({ items, filters, stats }: Props) {
         const data = new FormData();
         data.append('nomor_berita_acara', formData.nomor_berita_acara);
         data.append('nama', formData.nama);
+        data.append('no_hp', formData.no_hp || '');
         data.append('permasalahan', formData.permasalahan);
         data.append('solusi', formData.solusi);
         data.append('status', formData.status);
@@ -122,6 +160,7 @@ export default function BeritaAcaraPage({ items, filters, stats }: Props) {
         const data = new FormData();
         data.append('nomor_berita_acara', formData.nomor_berita_acara);
         data.append('nama', formData.nama);
+        data.append('no_hp', formData.no_hp || '');
         data.append('permasalahan', formData.permasalahan);
         data.append('solusi', formData.solusi);
         data.append('status', formData.status);
@@ -149,24 +188,24 @@ export default function BeritaAcaraPage({ items, filters, stats }: Props) {
             <Head title="Berita Acara - Layanan Taspen" />
 
             <div className="flex h-full flex-1 flex-col gap-6 p-4 md:p-6">
-               
                 <BaTable
                     items={items}
+                    stats={stats}
                     searchQuery={searchQuery}
                     statusFilter={statusFilter}
+                    dokumentasiFilter={dokumentasiFilter}
                     onSearchChange={setSearchQuery}
                     onSearch={handleSearch}
                     onStatusFilterChange={handleStatusFilterChange}
+                    onDokumentasiFilterChange={handleDokumentasiFilterChange}
                     onOpenDetail={handleOpenDetail}
                     onOpenEdit={handleOpenEdit}
                     onOpenDelete={handleOpenDelete}
                     onOpenCreate={handleOpenCreate}
+                    onOpenUploadDokumentasi={handleOpenUploadDokumentasi}
+                    onOpenFotoModal={handleOpenFotoModal}
                 />
-
-                 <BaStats stats={stats} />
             </div>
-
-
 
             <BaCreateModal
                 open={isCreateOpen}
@@ -195,6 +234,22 @@ export default function BeritaAcaraPage({ items, filters, stats }: Props) {
                 open={isDetailOpen}
                 onOpenChange={setIsDetailOpen}
                 item={selectedItem}
+                onOpenUploadDokumentasi={handleOpenUploadDokumentasi}
+                onOpenFotoModal={handleOpenFotoModal}
+            />
+
+            <BaUploadDokumentasiModal
+                open={isUploadDokumentasiOpen}
+                onOpenChange={setIsUploadDokumentasiOpen}
+                item={selectedItem}
+                isAfterPrint={isAfterPrintPrompt}
+            />
+
+            <BaFotoModal
+                open={isFotoModalOpen}
+                onOpenChange={setIsFotoModalOpen}
+                item={selectedItem}
+                onOpenUpload={handleOpenUploadDokumentasi}
             />
 
             <BaDeleteModal

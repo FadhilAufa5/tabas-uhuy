@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import type { BeritaAcara, BeritaAcaraFormData } from './types';
-import { formatFileSize } from './utils';
+import { formatFileSize, formatTanggalInput } from './utils';
 
 interface BaEditModalProps {
     open: boolean;
@@ -82,7 +82,7 @@ export function BaEditModal({
                             <Input
                                 id="edit_tanggal"
                                 type="date"
-                                value={formData.tanggal_kejadian}
+                                value={formatTanggalInput(formData.tanggal_kejadian)}
                                 onChange={(e) =>
                                     setFormData({ ...formData, tanggal_kejadian: e.target.value })
                                 }
@@ -90,19 +90,37 @@ export function BaEditModal({
                         </div>
                     </div>
 
-                    <div className="space-y-1.5">
-                        <Label htmlFor="edit_nama">
-                            Nama Pihak / Pelapor <span className="text-rose-500">*</span>
-                        </Label>
-                        <Input
-                            id="edit_nama"
-                            value={formData.nama}
-                            onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
-                            required
-                        />
-                        {formErrors.nama && (
-                            <p className="text-xs text-rose-500">{formErrors.nama}</p>
-                        )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="edit_nama">
+                                Nama Pihak / Pelapor <span className="text-rose-500">*</span>
+                            </Label>
+                            <Input
+                                id="edit_nama"
+                                value={formData.nama}
+                                onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
+                                required
+                            />
+                            {formErrors.nama && (
+                                <p className="text-xs text-rose-500">{formErrors.nama}</p>
+                            )}
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label htmlFor="edit_no_hp">No. HP / WhatsApp</Label>
+                            <Input
+                                id="edit_no_hp"
+                                type="tel"
+                                placeholder="Contoh: 081234567890"
+                                value={formData.no_hp || ''}
+                                onChange={(e) =>
+                                    setFormData({ ...formData, no_hp: e.target.value })
+                                }
+                            />
+                            {formErrors.no_hp && (
+                                <p className="text-xs text-rose-500">{formErrors.no_hp}</p>
+                            )}
+                        </div>
                     </div>
 
                     <div className="space-y-1.5">
