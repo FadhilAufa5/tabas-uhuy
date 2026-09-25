@@ -27,6 +27,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('referensi-kasus', [ReferensiKasusController::class, 'store'])->name('referensi-kasus.store');
     Route::match(['put', 'post'], 'referensi-kasus/{referensiKasus}', [ReferensiKasusController::class, 'update'])->name('referensi-kasus.update');
     Route::delete('referensi-kasus/{referensiKasus}', [ReferensiKasusController::class, 'destroy'])->name('referensi-kasus.destroy');
+    Route::get('referensi-kasus/{referensiKasus}/download-lampiran', [ReferensiKasusController::class, 'downloadLampiran'])->name('referensi-kasus.download-lampiran');
     Route::post('referensi-kasus/import-csv', [ReferensiKasusController::class, 'importCsv'])->name('referensi-kasus.import-csv');
     Route::get('referensi-kasus/export-csv', [ReferensiKasusController::class, 'exportCsv'])->name('referensi-kasus.export-csv');
 

@@ -53,6 +53,10 @@ export type ReferensiKasus = {
     kasus: string;
     penyelesaian: string;
     aturan?: string | null;
+    lampiran?: string | null;
+    lampiran_name?: string | null;
+    lampiran_size?: number | null;
+    lampiran_url?: string | null;
     created_at: string;
     updated_at: string;
 };

@@ -1271,11 +1271,11 @@ export function DashboardChatbot({
                         </form>
 
                         <div className="flex items-center justify-between w-full px-1 text-[11px] text-muted-foreground">
-                            <span className="flex items-center gap-1">
+                            {/* <span className="flex items-center gap-1">
                                 <Sparkles className="size-3 text-amber-500" />
                                 AI Layanan Taspen • Selalu Siap 24/7
-                            </span>
-                            <span>Tekan Enter ↵ untuk kirim</span>
+                            </span> */}
+                            {/* <span>Tekan Enter ↵ untuk kirim</span> */}
                         </div>
                     </CardFooter>
                 </Card>
