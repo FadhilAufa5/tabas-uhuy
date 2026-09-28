@@ -170,51 +170,49 @@ class ReferensiKasusController extends Controller
     }
 
     /**
-     * Import Referensi Kasus from uploaded CSV file.
+     * Import Referensi Kasus from uploaded CSV or Excel file.
      */
-    public function importCsv(Request $request): RedirectResponse
+    public function importCsv(Request $request, \App\Services\SpreadsheetImportService $importService): RedirectResponse
     {
+        // Support either 'file_csv', 'file', or 'file_excel'
         $request->validate([
-            'file_csv' => 'required|file|max:5120',
+            'file_csv'   => 'nullable|file|max:10240',
+            'file'       => 'nullable|file|max:10240',
+            'file_excel' => 'nullable|file|max:10240',
         ], [
-            'file_csv.required' => 'File CSV wajib diunggah.',
-            'file_csv.max'      => 'Ukuran file CSV maksimal 5MB.',
+            'file_csv.max'   => 'Ukuran file maksimal 10MB.',
+            'file.max'       => 'Ukuran file maksimal 10MB.',
+            'file_excel.max' => 'Ukuran file maksimal 10MB.',
         ]);
 
-        $file     = $request->file('file_csv');
-        $filePath = $file->getRealPath() ?: $file->getPathname();
+        $file = $request->file('file_csv') ?? $request->file('file') ?? $request->file('file_excel');
 
-        $rows = array_map('str_getcsv', file($filePath));
-
-        if (empty($rows)) {
-            return redirect()->back()->with('error', 'File CSV kosong.');
+        if (! $file) {
+            return redirect()->back()->with('error', 'Silakan pilih file CSV atau Excel (.xlsx, .xls) untuk diimpor.');
         }
 
-        $headers = array_shift($rows);
-        if (! $headers) {
-            return redirect()->back()->with('error', 'Header CSV tidak valid.');
+        try {
+            $records = $importService->parseFile($file);
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', 'Gagal membaca format file: ' . $e->getMessage());
         }
 
-        // Clean headers
-        $cleanHeaders = array_map(function ($h) {
-            return strtolower(trim(preg_replace('/[\x00-\x1F\x80-\xFF]/', '', (string) $h)));
-        }, $headers);
+        if (empty($records)) {
+            return redirect()->back()->with('error', 'Tidak ada baris data valid yang ditemukan. Pastikan file memiliki baris header dan kolom "kasus" serta "penyelesaian" terisi.');
+        }
 
         $count = 0;
-        foreach ($rows as $row) {
-            if (empty(array_filter($row))) {
-                continue;
-            }
+        $currentMaxNumber = (int) ReferensiKasus::max('id');
 
-            if (count($cleanHeaders) === count($row)) {
-                $data = array_combine($cleanHeaders, $row);
-            } else {
-                continue;
-            }
+        \Illuminate\Support\Facades\DB::transaction(function () use ($records, &$count, &$currentMaxNumber) {
+            foreach ($records as $data) {
+                $currentMaxNumber++;
+                $kodeKasus = ! empty($data['kode_kasus'])
+                    ? $data['kode_kasus']
+                    : ('KS-' . str_pad((string) $currentMaxNumber, 3, '0', STR_PAD_LEFT));
 
-            if ($data && ! empty($data['kasus']) && ! empty($data['penyelesaian'])) {
                 ReferensiKasus::create([
-                    'kode_kasus'   => ! empty($data['kode_kasus']) ? $data['kode_kasus'] : ('KS-' . str_pad((string) (ReferensiKasus::count() + 1), 3, '0', STR_PAD_LEFT)),
+                    'kode_kasus'   => $kodeKasus,
                     'kategori'     => ! empty($data['kategori']) ? $data['kategori'] : 'Umum',
                     'kasus'        => $data['kasus'],
                     'penyelesaian' => $data['penyelesaian'],
@@ -222,9 +220,34 @@ class ReferensiKasusController extends Controller
                 ]);
                 $count++;
             }
-        }
+        });
 
-        return redirect()->back()->with('success', "Berhasil mengimpor {$count} data referensi kasus dari CSV.");
+        return redirect()->back()->with('success', "Berhasil mengimpor {$count} data referensi kasus.");
+    }
+
+    /**
+     * Download CSV template for importing Referensi Kasus.
+     */
+    public function downloadTemplate(): StreamedResponse
+    {
+        $filename = 'template_import_referensi_kasus.csv';
+
+        $headers = [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'Pragma'              => 'no-cache',
+            'Cache-Control'       => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires'             => '0',
+        ];
+
+        return response()->stream(function () {
+            $handle = fopen('php://output', 'w');
+            fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
+            fputcsv($handle, ['kode_kasus', 'kategori', 'kasus', 'penyelesaian', 'aturan']);
+            fputcsv($handle, ['KS-001', 'Klaim', 'Contoh uraian masalah atau kasus pensiun', 'Contoh langkah-langkah penyelesaian atau solusi SOP', 'PP No. 70 Tahun 2015']);
+            fputcsv($handle, ['KS-002', 'Pensiun', 'Contoh keterlambatan berkas klim otomatis', 'Lakukan verifikasi NIP dan koordinasi dengan unit BKN', 'UU No. 11 Tahun 1969']);
+            fclose($handle);
+        }, 200, $headers);
     }
 
     /**

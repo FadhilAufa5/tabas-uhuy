@@ -25,11 +25,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // 2. Referensi Kasus
     Route::get('referensi-kasus', [ReferensiKasusController::class, 'index'])->name('referensi-kasus.index');
     Route::post('referensi-kasus', [ReferensiKasusController::class, 'store'])->name('referensi-kasus.store');
+    Route::post('referensi-kasus/import-csv', [ReferensiKasusController::class, 'importCsv'])->name('referensi-kasus.import-csv');
+    Route::post('referensi-kasus/import', [ReferensiKasusController::class, 'importCsv'])->name('referensi-kasus.import');
+    Route::get('referensi-kasus/export-csv', [ReferensiKasusController::class, 'exportCsv'])->name('referensi-kasus.export-csv');
+    Route::get('referensi-kasus/template', [ReferensiKasusController::class, 'downloadTemplate'])->name('referensi-kasus.template');
     Route::match(['put', 'post'], 'referensi-kasus/{referensiKasus}', [ReferensiKasusController::class, 'update'])->name('referensi-kasus.update');
     Route::delete('referensi-kasus/{referensiKasus}', [ReferensiKasusController::class, 'destroy'])->name('referensi-kasus.destroy');
     Route::get('referensi-kasus/{referensiKasus}/download-lampiran', [ReferensiKasusController::class, 'downloadLampiran'])->name('referensi-kasus.download-lampiran');
-    Route::post('referensi-kasus/import-csv', [ReferensiKasusController::class, 'importCsv'])->name('referensi-kasus.import-csv');
-    Route::get('referensi-kasus/export-csv', [ReferensiKasusController::class, 'exportCsv'])->name('referensi-kasus.export-csv');
 
     // 3. User Management & Role Permissions (Admin Only)
     Route::middleware(['role:admin'])->group(function () {

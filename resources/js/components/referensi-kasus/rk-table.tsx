@@ -1,9 +1,12 @@
 import { router } from '@inertiajs/react';
 import {
     Check,
+    ChevronLeft,
+    ChevronRight,
     Copy,
     Eye,
     FileSpreadsheet,
+    MoreHorizontal,
     Paperclip,
     Pencil,
     Scale,
@@ -137,7 +140,9 @@ export function RkTable({
                                             <div className="flex items-center gap-1">
                                                 {item.kode_kasus || `KS-${item.id}`}
                                                 {item.lampiran && (
-                                                    <Paperclip className="size-3 text-muted-foreground shrink-0" title="Ada lampiran" />
+                                                    <span title="Ada lampiran">
+                                                        <Paperclip className="size-3 text-muted-foreground shrink-0" />
+                                                    </span>
                                                 )}
                                             </div>
                                         </TableCell>
@@ -221,23 +226,107 @@ export function RkTable({
 
                 {/* Pagination */}
                 {items.total > items.per_page && (
-                    <div className="flex items-center justify-between p-4 border-t border-border">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 border-t border-border">
                         <div className="text-xs text-muted-foreground">
-                            Menampilkan {items.from || 0} - {items.to || 0} dari {items.total} referensi kasus
+                            Menampilkan <span className="font-medium text-foreground">{items.from || 0}</span> - <span className="font-medium text-foreground">{items.to || 0}</span> dari <span className="font-medium text-foreground">{items.total}</span> referensi kasus
                         </div>
-                        <div className="flex items-center gap-1">
-                            {items.links.map((link, idx) => (
-                                <Button
-                                    key={idx}
-                                    variant={link.active ? 'default' : 'outline'}
-                                    size="sm"
-                                    disabled={!link.url}
-                                    onClick={() => link.url && router.visit(link.url)}
-                                    className="h-8 min-w-[32px] px-2.5 text-xs"
-                                    dangerouslySetInnerHTML={{ __html: link.label }}
-                                />
-                            ))}
-                        </div>
+                        {(() => {
+                            const totalPages = items.last_page || 1;
+                            const currentPage = items.current_page || 1;
+
+                            if (totalPages <= 1) return null;
+
+                            const getPageUrl = (page: number) => {
+                                const matchingLink = items.links?.find((l) => l.label === String(page));
+                                if (matchingLink?.url) return matchingLink.url;
+                                try {
+                                    const url = new URL(window.location.href);
+                                    url.searchParams.set('page', String(page));
+                                    return url.pathname + url.search;
+                                } catch {
+                                    return `${items.path}?page=${page}`;
+                                }
+                            };
+
+                            let pageNumbers: (number | string)[] = [];
+
+                            if (totalPages <= 7) {
+                                for (let i = 1; i <= totalPages; i++) {
+                                    pageNumbers.push(i);
+                                }
+                            } else {
+                                if (currentPage <= 4) {
+                                    // 1-5, ..., lastPage
+                                    pageNumbers = [1, 2, 3, 4, 5, '...', totalPages];
+                                } else if (currentPage >= totalPages - 3) {
+                                    pageNumbers = [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+                                } else {
+                                    pageNumbers = [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+                                }
+                            }
+
+                            return (
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                    {/* Previous button */}
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={!items.prev_page_url || currentPage <= 1}
+                                        onClick={() => items.prev_page_url && router.visit(items.prev_page_url)}
+                                        className="h-8 px-2.5 text-xs gap-1"
+                                    >
+                                        <ChevronLeft className="size-3.5" />
+                                        <span className="hidden sm:inline">Sebelumnya</span>
+                                    </Button>
+
+                                    {/* Page numbers & dots */}
+                                    {pageNumbers.map((p, idx) => {
+                                        if (p === '...') {
+                                            return (
+                                                <span
+                                                    key={`dots-${idx}`}
+                                                    className="flex size-8 items-center justify-center text-muted-foreground"
+                                                >
+                                                    <MoreHorizontal className="size-4" />
+                                                </span>
+                                            );
+                                        }
+
+                                        const pageNum = Number(p);
+                                        const isActive = pageNum === currentPage;
+                                        const url = getPageUrl(pageNum);
+
+                                        return (
+                                            <Button
+                                                key={`page-${pageNum}`}
+                                                variant={isActive ? 'default' : 'outline'}
+                                                size="sm"
+                                                onClick={() => !isActive && router.visit(url)}
+                                                className={`size-8 p-0 text-xs font-medium transition-all ${
+                                                    isActive
+                                                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs font-semibold'
+                                                        : 'hover:bg-muted'
+                                                }`}
+                                            >
+                                                {pageNum}
+                                            </Button>
+                                        );
+                                    })}
+
+                                    {/* Next button */}
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={!items.next_page_url || currentPage >= totalPages}
+                                        onClick={() => items.next_page_url && router.visit(items.next_page_url)}
+                                        className="h-8 px-2.5 text-xs gap-1"
+                                    >
+                                        <span className="hidden sm:inline">Berikutnya</span>
+                                        <ChevronRight className="size-3.5" />
+                                    </Button>
+                                </div>
+                            );
+                        })()}
                     </div>
                 )}
             </CardContent>

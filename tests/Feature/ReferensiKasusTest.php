@@ -51,6 +51,33 @@ test('user can import csv referensi kasus', function () {
     ]);
 });
 
+test('user can import csv referensi kasus with alias headers', function () {
+    $csvContent = "Kode Kasus,Kategori Kasus,Uraian Kasus,Solusi,Dasar Hukum\nKS-ALIAS-1,Pensiun,Kasus Alias 1,Solusi Alias 1,PP 70/2015\nKS-ALIAS-2,Non-Klim,Kasus Alias 2,Solusi Alias 2,UU 11/1969";
+    $file = UploadedFile::fake()->createWithContent('referensi_alias.csv', $csvContent);
+
+    $response = $this->actingAs($this->user)->post(route('referensi-kasus.import-csv'), [
+        'file_csv' => $file,
+    ]);
+
+    $response->assertSessionHasNoErrors();
+    $this->assertDatabaseHas('referensi_kasus', [
+        'kode_kasus' => 'KS-ALIAS-1',
+        'kasus' => 'Kasus Alias 1',
+        'penyelesaian' => 'Solusi Alias 1',
+    ]);
+    $this->assertDatabaseHas('referensi_kasus', [
+        'kode_kasus' => 'KS-ALIAS-2',
+        'kasus' => 'Kasus Alias 2',
+        'penyelesaian' => 'Solusi Alias 2',
+    ]);
+});
+
+test('user can download referensi kasus import template', function () {
+    $response = $this->actingAs($this->user)->get(route('referensi-kasus.template'));
+    $response->assertStatus(200);
+    $response->assertHeader('content-type', 'text/csv; charset=UTF-8');
+});
+
 test('user can export csv referensi kasus', function () {
     ReferensiKasus::create([
         'kode_kasus' => 'KS-EXP-01',
@@ -64,3 +91,4 @@ test('user can export csv referensi kasus', function () {
     $response->assertStatus(200);
     $response->assertHeader('content-type', 'text/csv; charset=UTF-8');
 });
+

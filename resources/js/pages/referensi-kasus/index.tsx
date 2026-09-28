@@ -137,14 +137,38 @@ export default function ReferensiKasusPage({ items, filters, categories, stats }
 
     const handleSubmitImport = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!importFile) { toast.error('Silakan pilih file CSV terlebih dahulu.'); return; }
+        if (!importFile) {
+            toast.error('Silakan pilih file CSV atau Excel terlebih dahulu.');
+            return;
+        }
+
+        const validExtensions = ['.csv', '.xlsx', '.xls', '.txt'];
+        const fileName = importFile.name.toLowerCase();
+        const isValid = validExtensions.some((ext) => fileName.endsWith(ext));
+
+        if (!isValid) {
+            toast.error('Format file tidak didukung. Harap unggah file CSV (.csv) atau Excel (.xlsx, .xls).');
+            return;
+        }
+
         setIsSubmitting(true);
         const data = new FormData();
         data.append('file_csv', importFile);
+        data.append('file', importFile);
         router.post('/referensi-kasus/import-csv', data, {
             forceFormData: true,
-            onError: (err) => { setFormErrors(err); setIsSubmitting(false); },
-            onSuccess: () => { setIsImportOpen(false); setImportFile(null); setIsSubmitting(false); },
+            onError: (err) => {
+                setFormErrors(err);
+                setIsSubmitting(false);
+                const msg = err.file || err.file_csv || err.file_excel || 'Terjadi kesalahan saat mengimpor data.';
+                toast.error(msg);
+            },
+            onSuccess: () => {
+                setIsImportOpen(false);
+                setImportFile(null);
+                setFormErrors({});
+                setIsSubmitting(false);
+            },
         });
     };
 
@@ -176,8 +200,8 @@ export default function ReferensiKasusPage({ items, filters, categories, stats }
                         </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2.5">
-                        <Button variant="outline" size="sm" onClick={() => setIsImportOpen(true)} className="shadow-xs">
-                            <Upload className="mr-1.5 size-4" /> Import CSV
+                        <Button variant="outline" size="sm" onClick={() => setIsImportOpen(true)} className="shadow-xs hover:border-emerald-500/40 hover:text-emerald-600">
+                            <Upload className="mr-1.5 size-4" /> Import CSV / Excel
                         </Button>
                         <a href="/referensi-kasus/export-csv" download>
                             <Button variant="outline" size="sm" className="shadow-xs">
@@ -243,6 +267,7 @@ export default function ReferensiKasusPage({ items, filters, categories, stats }
                 isSubmitting={isSubmitting}
                 onSubmit={handleSubmitImport}
                 onFileChange={setImportFile}
+                importFile={importFile}
             />
 
             <RkDeleteModal
